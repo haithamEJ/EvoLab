@@ -1,0 +1,8 @@
+.button {
+    -fx-padding: 8 18;
+    -fx-font-size: 14px;
+    -fx-background-radius: 6;
+    -fx-focus-color: black;
+    -fx-faint-focus-color: transparent;
+    -fx-cursor: hand;
+}

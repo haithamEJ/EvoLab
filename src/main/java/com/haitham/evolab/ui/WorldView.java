@@ -1,17 +1,25 @@
 package com.haitham.evolab.ui;
 
+import com.haitham.evolab.model.Food;
+import com.haitham.evolab.model.O1;
+import com.haitham.evolab.model.Organism;
+import javafx.geometry.HPos;
 import javafx.geometry.Insets;
+import javafx.geometry.VPos;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.RowConstraints;
+import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 
-import java.util.Set;
-import java.util.HashSet;
-import java.util.Random;
+import java.util.*;
 
 public class WorldView {
     int rows,cols,cellSize;
+    private final Map<Organism, Circle> organismShapes = new HashMap<>();
+    private final Map<Food, Circle> foodShapes = new HashMap<>();
+    private final Set<String> occupied = new HashSet<>();
+
 
     public WorldView(int rows , int cols , int cellSize){
         this.rows = rows;
@@ -64,7 +72,7 @@ public class WorldView {
         return maze.getRowConstraints().get(0).getPrefHeight();
     }
 
-    public void spawnRand(int numberElements,GridPane maze) {
+    public void spawnRandFood(int numberElements,GridPane maze) {
 
 
         int cols = this.getCols(maze);
@@ -72,7 +80,12 @@ public class WorldView {
         double w = this.getCellWidth(maze);
 
         Random random = new Random();
-        Set<String> occupied = new HashSet<>();
+
+        int available = rows * cols - occupied.size();
+
+        if (numberElements < 0 || numberElements > available) {
+            throw new IllegalArgumentException("Not enough empty cells");
+        }
 
         for (int i = 0 ; i < numberElements ; i++) {
 
@@ -85,12 +98,80 @@ public class WorldView {
                 position = row + "," + col;
             }while (occupied.contains(position));
 
+
             occupied.add(position);
-            Circle circle = new Circle(w/3);
+            Food food = new Food(col,row);
+            Circle circle = new Circle(w/10);
+            circle.setFill(Color.RED);
             maze.add(circle, col, row);
             GridPane.setMargin(circle, new Insets(10,10,10,10));
+            foodShapes.put(food,circle);
         }
 
     }
 
+
+    public void spawnRandCreatures(int numberElements, GridPane maze) {
+
+
+        int cols = this.getCols(maze);
+        int rows = this.getRows(maze);
+        double w = this.getCellWidth(maze);
+
+        Random random = new Random();
+
+        int available = rows * cols - occupied.size();
+
+        if (numberElements < 0 || numberElements > available) {
+            throw new IllegalArgumentException("Not enough empty cells");
+        }
+
+        for (int i = 0 ; i < numberElements ; i++) {
+
+            int row , col ;
+            String position;
+
+            do{
+                row = random.nextInt(rows);
+                col = random.nextInt(cols);
+                position = row + "," + col;
+            }while (occupied.contains(position));
+
+
+            occupied.add(position);
+            O1 creature = new O1(col,row);
+            Circle circle = new Circle(w/creature.getRad()); // max /2
+            circle.setFill(Color.GREEN);
+            maze.add(circle, col, row);
+            GridPane.setHalignment(circle, HPos.CENTER);
+            GridPane.setValignment(circle, VPos.CENTER);
+            organismShapes.put(creature,circle);
+        }
+
+    }
+
+    public void WorldIsMoving(GridPane maze){
+        double w = this.getCellWidth(maze);
+        for (Map.Entry<Organism,Circle> entry : organismShapes.entrySet()){
+            Organism o1 = entry.getKey() ;
+            Circle cercle = entry.getValue();
+            o1.move(rows,cols);
+            GridPane.setColumnIndex(cercle,o1.getX());
+            GridPane.setRowIndex(cercle,o1.getY());
+
+            for(Food food :foodShapes.keySet()){
+                if(food.getX() == o1.getX() && food.getY() == o1.getY()){
+                    o1.setEnergy(o1.getEnergy()+food.getEnergy_effect());
+                    Circle c = organismShapes.get(o1);
+                    if(c.getRadius()< w/2) {
+                        c.setRadius(w/(o1.getRad()-2));
+                        o1.setRad(o1.getRad() -2);
+                    }
+                    maze.getChildren().remove(foodShapes.get(food));
+                    foodShapes.remove(food);
+                    break;
+                }
+            }
+        }
+    }
 }
